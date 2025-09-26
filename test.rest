@@ -1,0 +1,41 @@
+###
+// LOGIN
+POST http://localhost:3000/api/v1/auth/login
+Content-Type: application/json
+
+{
+"username": "coba baru",
+"password": "passwordrahasia"
+}
+
+###
+// GET ALL ADMINS
+GET http://localhost:3000/api/v1/auth
+
+###
+// CREATE ADMIN
+POST http://localhost:3000/api/v1/auth/create
+Content-Type: application/json
+
+{
+"username": "coba",
+"password": "passwordrahasia",
+"email": "coba@example.com",
+"name": "coba"
+}
+
+###
+// EDIT ADMIN
+PUT http://localhost:3000/api/v1/auth/update/5
+Content-Type: application/json
+
+{
+"username": "coba baru",
+"password": "passwordrahasia",
+"email": "coba baru@example.com",
+"name": "coba Baru"
+}
+
+###
+// DELETE ADMIN
+DELETE  http://localhost:3000/api/v1/auth/delete/4
