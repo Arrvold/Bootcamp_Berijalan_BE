@@ -2,6 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import authRoutes from '../src/routes/auth.routes';
 import { MErrorHandler } from '../src/middlewares/error.middleware';
+import { connectRedis } from './configs/redis.config';
+
+connectRedis();
 
 const app = express();
 app.use(express.json());

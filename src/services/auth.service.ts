@@ -1,7 +1,7 @@
-import { Admin, PrismaClient } from '@prisma/client';
+import { PrismaClient, type Admin } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { IGlobalResponse, IloginResponse, IAdminData } from '../interfaces/global.interface';
-import { promises } from 'dns';
+
 
 const prisma = new PrismaClient();
 
