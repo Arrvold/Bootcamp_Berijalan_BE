@@ -30,4 +30,12 @@ export interface IloginResponse {
     admin: IAdminData;
 }
 
+export interface ICounterData {
+    id: number;
+    name: string;
+    currentQueue: number;
+    maxQueue: number;
+    isActive: boolean;
+}
+
 export type TGlobalResponse<T = unknown> = IGlobalResponse<T>;
