@@ -1,3 +1,5 @@
+import { number } from "joi";
+
 export interface IGlobalResponse<T = unknown> {
     status: boolean;
     message: string;
@@ -36,6 +38,17 @@ export interface ICounterData {
     currentQueue: number;
     maxQueue: number;
     isActive: boolean;
+}
+
+export interface IQueueData {
+    id: number;
+    number: number;
+    status: string;
+    counterId: number;
+    counter?: {
+        name: string;
+    }
+    createdAt: Date;
 }
 
 export type TGlobalResponse<T = unknown> = IGlobalResponse<T>;
