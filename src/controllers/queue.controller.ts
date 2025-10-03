@@ -59,3 +59,12 @@ export const CDeleteQueue = async (req: Request, res: Response, next: NextFuncti
         res.json(result);
     } catch (error) { next(error); }
 };
+
+export const CSkipQueue = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const id = validateAndParseId(req, res);
+        if (id === null) return;
+        const result = await queueService.SSkipQueue(id);
+        res.json(result);
+    } catch (error) { next(error); }
+};

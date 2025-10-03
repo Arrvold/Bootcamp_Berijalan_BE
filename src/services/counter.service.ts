@@ -1,5 +1,5 @@
 import { PrismaClient, type Counter } from '@prisma/client';
-import { IGlobalResponse, ICounterData, IPagination } from '../interfaces/global.interface';
+import { IGlobalResponse, ICounterData, IPagination, IQueueData } from '../interfaces/global.interface';
 
 const prisma = new PrismaClient();
 
@@ -76,4 +76,44 @@ export const SDeleteCounter = async (id: number): Promise<IGlobalResponse<null>>
         data: { deletedAt: new Date() }
     });
     return { status: true, message: 'Counter deleted successfully' };
+};
+
+// Untuk 'next queue'
+export const SNextQueueForCounter = async (counterId: number): Promise<IGlobalResponse<IQueueData | null>> => {
+    const nextQueue = await prisma.queue.findFirst({
+        where: {
+            counterId: counterId,
+            status: 'waiting'
+        },
+        orderBy: {
+            createdAt: 'asc'
+        }
+    });
+
+    if (!nextQueue) {
+        return { status: true, message: 'No waiting queue found for this counter', data: null };
+    }
+
+    const updatedQueue = await prisma.queue.update({
+        where: { id: nextQueue.id },
+        data: { status: 'processing' }
+    });
+
+    return { status: true, message: 'Next queue is now processing', data: updatedQueue };
+};
+
+// Untuk 'reset queue'
+export const SResetCounter = async (counterId: number): Promise<IGlobalResponse<null>> => {
+    await prisma.$transaction([
+        // Hapus semua antrian yang terhubung dengan counter ini
+        prisma.queue.deleteMany({
+            where: { counterId: counterId }
+        }),
+        // Reset currentQueue di counter menjadi 0
+        prisma.counter.update({
+            where: { id: counterId },
+            data: { currentQueue: 0 }
+        })
+    ]);
+    return { status: true, message: 'Counter has been reset successfully' };
 };

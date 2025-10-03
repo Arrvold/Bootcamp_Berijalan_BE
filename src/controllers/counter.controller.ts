@@ -72,3 +72,21 @@ export const CDeleteCounter = async (req: Request, res: Response, next: NextFunc
         res.json(result);
     } catch (error) { next(error); }
 };
+
+export const CNextQueueForCounter = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const id = validateAndParseId(req, res);
+        if (id === null) return; 
+        const result = await counterService.SNextQueueForCounter(id);
+        res.json(result);
+    } catch (error) { next(error); }
+};
+
+export const CResetCounter = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const id = validateAndParseId(req, res);
+        if (id === null) return; 
+        const result = await counterService.SResetCounter(id);
+        res.json(result);
+    } catch (error) { next(error); }
+};

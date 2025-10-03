@@ -1,7 +1,8 @@
 import { PrismaClient, type Admin } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { IGlobalResponse, IloginResponse, IAdminData } from '../interfaces/global.interface';
-
+import { UGenerateToken } from '../utils/jwt.util';
+import { AppError } from '../errors/AppError';
 
 const prisma = new PrismaClient();
 
@@ -18,7 +19,7 @@ export const SLogin = async (
     })
 
     if (!admin) {
-        throw Error("Invalid credentials");
+        throw AppError.unauthorized("Invalid credentials");
     }
 
     const isPasswordValid = await bcrypt.compare(password, admin.password);
@@ -27,18 +28,20 @@ export const SLogin = async (
         throw Error("Invalid credentials");
     }
 
-    const token = "dummy-jwt-token"; // Replace with actual JWT generation logic
+    const token = UGenerateToken(admin);
+
+    const adminResponse: IAdminData = {
+        id: admin.id,
+        username: admin.username,
+        email: admin.email,
+        name: admin.name,
+    };
 
     return {
         status: true,
         message: "Login successful",
         data: {
-            admin: {
-                id: admin.id,
-                username: admin.username,
-                email: admin.email,
-                name: admin.name,
-            },
+            admin: adminResponse,
             token: token
         }
     }
@@ -170,3 +173,12 @@ export const SDeleteAdmin = async (
         message: "Admin deleted successfully",
     }
 }
+
+export const SGetAdminById = async (id: number): Promise<IGlobalResponse<IAdminData>> => {
+    const admin = await prisma.admin.findUnique({
+        where: { id, deletedAt: null },
+        select: { id: true, username: true, email: true, name: true }
+    });
+    if (!admin) throw AppError.notFound("Admin not found");
+    return { status: true, message: 'Admin retrieved successfully', data: admin };
+};

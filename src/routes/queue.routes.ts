@@ -2,9 +2,12 @@ import { Router } from 'express';
 import * as queueController from '../controllers/queue.controller';
 import * as queueValidator from '../middlewares/queue.validator';
 import { MCache, MInvalidateCache, CachePresets } from '../middlewares/cache.middleware';
+import { MAuthenticate } from '../middlewares/authenticate.middleware';
 
 const router = Router();
-const queueCachePattern = ['queues*'];
+const queueCachePattern = ['queues*', 'counters*'];
+
+router.use(MAuthenticate);
 
 // Get all queues 
 router.get(
@@ -42,5 +45,8 @@ router.delete(
     queueController.CDeleteQueue, 
     MInvalidateCache(queueCachePattern)
 );
+
+// Skip queue
+router.patch('/:id/skip', queueController.CSkipQueue, MInvalidateCache(queueCachePattern));
 
 export default router;

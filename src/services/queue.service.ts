@@ -102,3 +102,12 @@ export const SDeleteQueue = async (id: number): Promise<IGlobalResponse<null>> =
     await prisma.queue.delete({ where: { id } });
     return { status: true, message: 'Queue deleted permanently' };
 };
+
+// skip queue
+export const SSkipQueue = async (id: number): Promise<IGlobalResponse<IQueueData>> => {
+    const updatedQueue = await prisma.queue.update({
+        where: { id },
+        data: { status: 'cancelled' } 
+    });
+    return { status: true, message: `Queue skipped successfully`, data: updatedQueue };
+};
