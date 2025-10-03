@@ -215,3 +215,21 @@ export const SSkipQueue = async (counterId: number): Promise<IGlobalResponse<IQu
         return { status: true, message: 'Current queue skipped, next queue called.', data: newCalledQueue };
     });
 };
+
+export const SGetQueueMetrics = async (): Promise<IGlobalResponse<any>> => {
+    const metrics = await prisma.queue.groupBy({
+        by: ['status'],
+        _count: {
+            status: true,
+        },
+    });
+
+    const formattedMetrics = { waiting: 0, called: 0, processing: 0, skipped: 0, done: 0 };
+    metrics.forEach(item => {
+        if (item.status in formattedMetrics) {
+            formattedMetrics[item.status as keyof typeof formattedMetrics] = item._count.status;
+        }
+    });
+
+    return { status: true, message: 'Metrics retrieved', data: formattedMetrics };
+};

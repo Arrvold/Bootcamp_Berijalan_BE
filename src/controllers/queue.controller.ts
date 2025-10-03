@@ -104,3 +104,10 @@ export const CSkipQueue = async (req: Request, res: Response, next: NextFunction
         res.json(result);
     } catch (error) { next(error); }
 };
+
+export const CGetQueueMetrics = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const result = await queueService.SGetQueueMetrics();
+        res.json(result);
+    } catch (error) { next(error); }
+};

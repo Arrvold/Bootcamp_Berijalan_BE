@@ -182,3 +182,15 @@ export const SGetAdminById = async (id: number): Promise<IGlobalResponse<IAdminD
     if (!admin) throw AppError.notFound("Admin not found");
     return { status: true, message: 'Admin retrieved successfully', data: admin };
 };
+
+export const SToggleAdminStatus = async (id: number): Promise<IGlobalResponse<{ newStatus: boolean }>> => {
+    const admin = await prisma.admin.findUnique({ where: { id } });
+    if (!admin) throw AppError.notFound("Admin not found");
+
+    const newStatus = !admin.isActive;
+    await prisma.admin.update({
+        where: { id },
+        data: { isActive: newStatus }
+    });
+    return { status: true, message: 'Admin status toggled', data: { newStatus } };
+};

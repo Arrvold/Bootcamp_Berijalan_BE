@@ -3,6 +3,7 @@ import { CLogin, CCreateAdmin, CGetAllAdmins, CUpdateAdmin, CDeleteAdmin, CGetAd
 import { validateCreateAdmin } from '../middlewares/validate.middleware';
 import { MCache, MInvalidateCache, CachePresets } from '../middlewares/cache.middleware';
 import { MAuthenticate } from '../middlewares/authenticate.middleware';
+import { CToggleAdminStatus } from '../controllers/auth.controller';
 
 const router = Router();
 const adminCachePattern = ['admins*'];
@@ -12,5 +13,6 @@ router.post('/create',  MAuthenticate, validateCreateAdmin, CCreateAdmin);
 router.get('/',  MAuthenticate, MCache(CachePresets.medium({ keyPrefix: 'admins' })), CGetAllAdmins);
 router.put('/update/:id', MAuthenticate, CUpdateAdmin, MInvalidateCache(adminCachePattern));
 router.delete('/delete/:id', MAuthenticate, CDeleteAdmin, MInvalidateCache(adminCachePattern));
+router.patch('/:id/toggle-status', MAuthenticate, CToggleAdminStatus, MInvalidateCache(adminCachePattern));
 
 export default router;
