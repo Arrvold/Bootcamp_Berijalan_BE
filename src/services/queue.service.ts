@@ -4,6 +4,7 @@ import {
     IQueueData,
     IPagination,
 } from "../interfaces/global.interface";
+import { AppError } from "../errors/AppError";
 
 const prisma = new PrismaClient();
 
@@ -103,11 +104,114 @@ export const SDeleteQueue = async (id: number): Promise<IGlobalResponse<null>> =
     return { status: true, message: 'Queue deleted permanently' };
 };
 
-// skip queue
-export const SSkipQueue = async (id: number): Promise<IGlobalResponse<IQueueData>> => {
-    const updatedQueue = await prisma.queue.update({
-        where: { id },
-        data: { status: 'cancelled' } 
+// PUBLIC: /claim
+export const SClaimQueue = async (): Promise<IGlobalResponse<IQueueData>> => {
+    // Cari loket yang paling sepi
+    const targetCounter = await prisma.counter.findFirst({
+        where: { isActive: true, deletedAt: null },
+        orderBy: { currentQueue: 'asc' },
     });
-    return { status: true, message: `Queue skipped successfully`, data: updatedQueue };
+
+    if (!targetCounter) {
+        throw AppError.notFound("No active counters available.");
+    }
+    if (targetCounter.currentQueue >= targetCounter.maxQueue) {
+        throw new AppError("All counters are currently full.", 429); // 429 Too Many Requests
+    }
+
+    // Gunakan transaksi untuk membuat antrian di loket yang terpilih
+    return prisma.$transaction(async (tx) => {
+        const nextQueueNumber = targetCounter.currentQueue + 1;
+
+        const newQueue = await tx.queue.create({
+            data: {
+                counterId: targetCounter.id,
+                number: nextQueueNumber,
+                status: 'waiting'
+            },
+            include: { counter: { select: { name: true } } }
+        });
+
+        await tx.counter.update({
+            where: { id: targetCounter.id },
+            data: { currentQueue: nextQueueNumber }
+        });
+
+        return { status: true, message: 'Queue claimed successfully', data: newQueue };
+    });
+};
+
+// PUBLIC: /release
+export const SReleaseQueue = async (id: number): Promise<IGlobalResponse<null>> => {
+    const queue = await prisma.queue.findUnique({ where: { id } });
+
+    if (!queue) {
+        throw AppError.notFound("Queue not found.");
+    }
+    if (queue.status !== 'waiting') {
+        throw AppError.badRequest(`Cannot release a queue with status '${queue.status}'.`);
+    }
+
+    await prisma.queue.update({
+        where: { id },
+        data: { status: 'released' }
+    });
+
+    return { status: true, message: "Queue has been released." };
+};
+
+// ADMIN: /next/:counter_id
+export const SNextQueue = async (counterId: number): Promise<IGlobalResponse<IQueueData | null>> => {
+    const nextQueue = await prisma.queue.findFirst({
+        where: { counterId, status: 'waiting' },
+        orderBy: { createdAt: 'asc' },
+        include: { counter: { select: { name: true } } }
+    });
+
+    if (!nextQueue) {
+        return { status: true, message: 'No more waiting queues for this counter.', data: null };
+    }
+
+    const calledQueue = await prisma.queue.update({
+        where: { id: nextQueue.id },
+        data: { status: 'called' },
+        include: { counter: { select: { name: true } } }
+    });
+
+    return { status: true, message: 'Next queue has been called.', data: calledQueue };
+};
+
+// ADMIN: /skip/:counter_id
+export const SSkipQueue = async (counterId: number): Promise<IGlobalResponse<IQueueData | null>> => {
+    return prisma.$transaction(async (tx) => {
+        const currentCalledQueue = await tx.queue.findFirst({
+            where: { counterId, status: 'called' },
+        });
+
+        if (currentCalledQueue) {
+            await tx.queue.update({
+                where: { id: currentCalledQueue.id },
+                data: { status: 'skipped' }
+            });
+        }
+
+        // Coba panggil antrian berikutnya
+        const nextQueue = await tx.queue.findFirst({
+            where: { counterId, status: 'waiting' },
+            orderBy: { createdAt: 'asc' },
+            include: { counter: { select: { name: true } } }
+        });
+
+        if (!nextQueue) {
+            return { status: true, message: 'Current queue skipped. No more waiting queues.', data: null };
+        }
+
+        const newCalledQueue = await tx.queue.update({
+            where: { id: nextQueue.id },
+            data: { status: 'called' },
+            include: { counter: { select: { name: true } } }
+        });
+
+        return { status: true, message: 'Current queue skipped, next queue called.', data: newCalledQueue };
+    });
 };

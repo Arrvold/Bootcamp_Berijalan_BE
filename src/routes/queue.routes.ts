@@ -47,6 +47,7 @@ router.delete(
 );
 
 // Skip queue
-router.patch('/:id/skip', queueController.CSkipQueue, MInvalidateCache(queueCachePattern));
+router.post('/next/:counter_id', queueController.CNextQueue, MInvalidateCache(queueCachePattern));
+router.post('/skip/:counter_id', queueController.CSkipQueue, MInvalidateCache(queueCachePattern));
 
 export default router;

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as queueService from '../services/queue.service';
+import { AppError } from '../errors/AppError';
 
 const validateAndParseId = (req: Request, res: Response): number | null => {
     const { id } = req.params;
@@ -60,11 +61,46 @@ export const CDeleteQueue = async (req: Request, res: Response, next: NextFuncti
     } catch (error) { next(error); }
 };
 
-export const CSkipQueue = async (req: Request, res: Response, next: NextFunction) => {
+export const CClaimQueue = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const result = await queueService.SClaimQueue();
+        res.status(201).json(result);
+    } catch (error) { next(error); }
+};
+
+export const CReleaseQueue = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const id = validateAndParseId(req, res);
         if (id === null) return;
-        const result = await queueService.SSkipQueue(id);
+        const result = await queueService.SReleaseQueue(id);
+        res.json(result);
+    } catch (error) { next(error); }
+};
+
+export const CNextQueue = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { counter_id } = req.params;
+        if (!counter_id) {
+            throw AppError.badRequest("Parameter 'counter_id' is required");
+        }
+        const counterId = parseInt(counter_id, 10);
+        if (isNaN(counterId)) {
+            throw AppError.badRequest("Parameter 'counter_id' must be a valid number");
+        } const result = await queueService.SNextQueue(counterId);
+        res.json(result);
+    } catch (error) { next(error); }
+};
+
+export const CSkipQueue = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { counter_id } = req.params;
+        if (!counter_id) {
+            throw AppError.badRequest("Parameter 'counter_id' is required");
+        }
+        const counterId = parseInt(counter_id, 10);
+        if (isNaN(counterId)) {
+            throw AppError.badRequest("Parameter 'counter_id' must be a valid number");
+        } const result = await queueService.SSkipQueue(counterId);
         res.json(result);
     } catch (error) { next(error); }
 };

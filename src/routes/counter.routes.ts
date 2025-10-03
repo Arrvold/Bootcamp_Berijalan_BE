@@ -55,6 +55,6 @@ router.delete(
 );
 
 router.post('/:id/next', counterController.CNextQueueForCounter, MInvalidateCache(counterCachePattern));
-router.post('/:id/reset', counterController.CResetCounter, MInvalidateCache(counterCachePattern));
+router.post('/reset', counterController.CResetCounters, MInvalidateCache(counterCachePattern));
 
 export default router;

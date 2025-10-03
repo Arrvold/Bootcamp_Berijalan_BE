@@ -1,5 +1,6 @@
-import { PrismaClient, type Counter } from '@prisma/client';
+import { Prisma, PrismaClient, type Counter } from '@prisma/client';
 import { IGlobalResponse, ICounterData, IPagination, IQueueData } from '../interfaces/global.interface';
+import { AppError } from '../errors/AppError';
 
 const prisma = new PrismaClient();
 
@@ -78,7 +79,7 @@ export const SDeleteCounter = async (id: number): Promise<IGlobalResponse<null>>
     return { status: true, message: 'Counter deleted successfully' };
 };
 
-// Untuk 'next queue'
+// Next queue
 export const SNextQueueForCounter = async (counterId: number): Promise<IGlobalResponse<IQueueData | null>> => {
     const nextQueue = await prisma.queue.findFirst({
         where: {
@@ -102,18 +103,43 @@ export const SNextQueueForCounter = async (counterId: number): Promise<IGlobalRe
     return { status: true, message: 'Next queue is now processing', data: updatedQueue };
 };
 
-// Untuk 'reset queue'
-export const SResetCounter = async (counterId: number): Promise<IGlobalResponse<null>> => {
-    await prisma.$transaction([
-        // Hapus semua antrian yang terhubung dengan counter ini
-        prisma.queue.deleteMany({
-            where: { counterId: counterId }
-        }),
-        // Reset currentQueue di counter menjadi 0
-        prisma.counter.update({
-            where: { id: counterId },
+
+// PUBLIC: /current
+export const SGetCurrentCounters = async (): Promise<IGlobalResponse<ICounterData[]>> => {
+    const counters = await prisma.counter.findMany({
+        where: { isActive: true, deletedAt: null },
+        select: { id: true, name: true, currentQueue: true, maxQueue: true, isActive: true },
+        orderBy: { id: 'asc' }
+    });
+
+    return { status: true, message: 'Current counter status retrieved successfully', data: counters };
+};
+
+// ADMIN: /reset
+export const SResetCounters = async (counterId?: number): Promise<IGlobalResponse<null>> => {
+    const whereClause: Prisma.CounterWhereInput = { isActive: true, deletedAt: null };
+    if (counterId) {
+        whereClause.id = counterId;
+    }
+
+    await prisma.$transaction(async (tx) => {
+        const countersToReset = await tx.counter.findMany({ where: whereClause });
+        if (countersToReset.length === 0) {
+            throw AppError.notFound("No active counters found to reset.");
+        }
+        const idsToReset = countersToReset.map(c => c.id);
+
+        await tx.queue.updateMany({
+            where: { counterId: { in: idsToReset }, status: { notIn: ['done', 'cancelled', 'released','skipped'] } },
+            data: { status: 'reset' }
+        });
+
+        await tx.counter.updateMany({
+            where: { id: { in: idsToReset } },
             data: { currentQueue: 0 }
-        })
-    ]);
-    return { status: true, message: 'Counter has been reset successfully' };
+        });
+    });
+
+    const message = counterId ? `Counter ${counterId} has been reset.` : "All active counters have been reset.";
+    return { status: true, message };
 };

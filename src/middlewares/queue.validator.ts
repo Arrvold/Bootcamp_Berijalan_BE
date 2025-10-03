@@ -6,7 +6,7 @@ const createQueueSchema = Joi.object({
 });
 
 const updateStatusSchema = Joi.object({
-    status: Joi.string().valid('waiting', 'processing', 'done', 'cancelled').required()
+    status: Joi.string().valid('waiting', 'processing', 'done', 'cancelled', 'called', 'skipped', 'released', 'reset').required()
 });
 
 const validate = (schema: Joi.ObjectSchema) => (req: Request, res: Response, next: NextFunction) => {

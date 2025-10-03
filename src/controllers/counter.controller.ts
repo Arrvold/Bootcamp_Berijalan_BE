@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as counterService from '../services/counter.service';
+import { AppError } from '../errors/AppError';
 
 const validateAndParseId = (req: Request, res: Response): number | null => {
     const { id } = req.params;
@@ -75,18 +76,31 @@ export const CDeleteCounter = async (req: Request, res: Response, next: NextFunc
 
 export const CNextQueueForCounter = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const id = validateAndParseId(req, res);
-        if (id === null) return; 
-        const result = await counterService.SNextQueueForCounter(id);
+        const { id } = req.params;
+        if (!id) {
+            throw AppError.badRequest("Parameter 'id' for counter is required");
+        }
+        const counterId = parseInt(id, 10);
+        if (isNaN(counterId)) {
+            throw AppError.badRequest("Parameter 'id' for counter must be a valid number");
+        }
+
+        const result = await counterService.SNextQueueForCounter(counterId);
         res.json(result);
     } catch (error) { next(error); }
 };
 
-export const CResetCounter = async (req: Request, res: Response, next: NextFunction) => {
+export const CGetCurrentCounters = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const id = validateAndParseId(req, res);
-        if (id === null) return; 
-        const result = await counterService.SResetCounter(id);
+        const result = await counterService.SGetCurrentCounters();
+        res.json(result);
+    } catch (error) { next(error); }
+};
+
+export const CResetCounters = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const counterId = req.body.counter_id ? parseInt(req.body.counter_id, 10) : undefined;
+        const result = await counterService.SResetCounters(counterId);
         res.json(result);
     } catch (error) { next(error); }
 };

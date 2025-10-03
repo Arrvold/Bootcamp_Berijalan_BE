@@ -4,6 +4,8 @@ import authRoutes from '../src/routes/auth.routes';
 import counterRoutes from './routes/counter.routes';
 import { MErrorHandler } from '../src/middlewares/error.middleware';
 import { connectRedis } from './configs/redis.config';
+import publicRoutes from './routes/public.routes';
+import queueRoutes from './routes/queue.routes';
 
 connectRedis();
 
@@ -13,6 +15,8 @@ app.use(cors());
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/counters", counterRoutes); 
+app.use('/api/v1', publicRoutes);
+app.use("/api/v1/queues", queueRoutes);
 
 app.use(MErrorHandler);
 app.listen(3000, () => {
